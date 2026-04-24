@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Symphona",
+    "description": "A routed playlist intersection extension for Spicetify with a premium split-hero comparison workspace.",
+    "preview": "assets/preview-routed-page.png",
+    "main": "symphona.js",
+    "readme": "README.md",
+    "branch": "main",
+    "authors": [
+      {
+        "name": "pandadoor",
+        "url": "https://github.com/pandadoor"
+      }
+    ],
+    "tags": [
+      "playlist",
+      "comparison",
+      "intersection",
+      "ui"
+    ]
+  }
+]
