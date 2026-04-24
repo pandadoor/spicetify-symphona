@@ -124,7 +124,7 @@ This project is not presented as a direct copy. It is a modernized, routed-page 
 
 ## Related Projects
 
-- [View Playlists With Song](https://github.com/pandadoor/spicetify-view-playlists-with-song) - another Spicetify extension by the same author for discovering every playlist that contains a selected song.
+- [View Playlists With Song](https://github.com/pandadoor/spicetify-melior) - another Spicetify extension by the same author for discovering every playlist that contains a selected song.
 
 ## Repository Contents
 
