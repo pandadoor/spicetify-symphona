@@ -1,6 +1,6 @@
 // NAME: symphona
 // AUTHOR: Pandador
-// DESCRIPTION: Compare two playlists on a routed page and save shared or unique tracks.
+// DESCRIPTION: Compare two playlists on a routed page with shared and unique track views.
 // VERSION: 5.0.0-local
 
 /// <reference path="../globals.d.ts" />
@@ -340,14 +340,13 @@ if (typeof module !== "undefined" && module.exports) {
 
     const {
         ContextMenu,
-        CosmosAsync,
         LocalStorage,
         Platform,
         React: react,
         ReactDOM: reactDOM,
     } = Spicetify;
 
-    if (!(ContextMenu && CosmosAsync && LocalStorage && Platform && react && reactDOM)) {
+    if (!(ContextMenu && LocalStorage && Platform && react && reactDOM)) {
         setTimeout(Symphona, 300);
         return;
     }
@@ -509,27 +508,6 @@ if (typeof module !== "undefined" && module.exports) {
 
         TRACK_LOADS.set(uri, loadPromise);
         return loadPromise;
-    }
-
-    async function createPlaylistFromTracks(name, trackUris) {
-        const response = await CosmosAsync.post("https://api.spotify.com/v1/me/playlists", {
-            description: "Created by Symphona",
-            name,
-            public: false,
-        });
-
-        const playlistId = response?.id;
-        if (!playlistId) {
-            throw new Error("Spotify did not return a new playlist id.");
-        }
-
-        for (const chunk of chunkArray(trackUris, 100)) {
-            await CosmosAsync.post(`https://api.spotify.com/v1/playlists/${playlistId}/tracks`, {
-                uris: chunk,
-            });
-        }
-
-        return response?.uri || `spotify:playlist:${playlistId}`;
     }
 
     function injectStyles() {
@@ -1455,10 +1433,8 @@ if (typeof module !== "undefined" && module.exports) {
             return {
                 emptyText: `Everything in ${leftName} already appears in ${rightName}.`,
                 emptyTitle: `No tracks are unique to ${leftName}.`,
-                saveLabel: "Create First Only Playlist",
-                saveSuffix: "First Only",
                 summaryEyebrow: "Only in First",
-                summaryText: `${pluralize(leftCount, "track")} stay unique to ${leftName}. Double-click any row to play it instantly, or save this filtered view into a new private playlist.`,
+                summaryText: `${pluralize(leftCount, "track")} stay unique to ${leftName}. Double-click any row to play it instantly or keep switching views without leaving the comparison.`,
                 summaryTitle: `${pluralize(leftCount, "song")} only live in ${leftName}.`,
                 tracks: comparison?.leftOnly || [],
             };
@@ -1468,10 +1444,8 @@ if (typeof module !== "undefined" && module.exports) {
             return {
                 emptyText: `Everything in ${rightName} already appears in ${leftName}.`,
                 emptyTitle: `No tracks are unique to ${rightName}.`,
-                saveLabel: "Create Second Only Playlist",
-                saveSuffix: "Second Only",
                 summaryEyebrow: "Only in Second",
-                summaryText: `${pluralize(rightCount, "track")} stay unique to ${rightName}. Double-click any row to play it instantly, or save this filtered view into a new private playlist.`,
+                summaryText: `${pluralize(rightCount, "track")} stay unique to ${rightName}. Double-click any row to play it instantly or keep switching views without leaving the comparison.`,
                 summaryTitle: `${pluralize(rightCount, "song")} only live in ${rightName}.`,
                 tracks: comparison?.rightOnly || [],
             };
@@ -1480,10 +1454,8 @@ if (typeof module !== "undefined" && module.exports) {
         return {
             emptyText: `${leftName} and ${rightName} do not share any tracks yet.`,
             emptyTitle: "Nothing overlaps between these playlists.",
-            saveLabel: "Create Shared Playlist",
-            saveSuffix: "Shared",
             summaryEyebrow: "Shared",
-            summaryText: `${pluralize(sharedCount, "track")} appear in both playlists. Keep this page open while you compare, switch views, and export the overlap when it feels worth saving.`,
+            summaryText: `${pluralize(sharedCount, "track")} appear in both playlists. Keep this page open while you compare, switch views, and jump back to the original playlists when you need more context.`,
             summaryTitle: `${pluralize(sharedCount, "song")} appear in both playlists.`,
             tracks: comparison?.intersection || [],
         };
@@ -1516,8 +1488,6 @@ if (typeof module !== "undefined" && module.exports) {
                 rightTotal: 0,
             },
             rightMeta: null,
-            saveMessage: "",
-            saveState: "idle",
             status: "loading",
         });
 
@@ -1538,8 +1508,6 @@ if (typeof module !== "undefined" && module.exports) {
                         rightTotal: 0,
                     },
                     rightMeta: null,
-                    saveMessage: "",
-                    saveState: "idle",
                     status: "error",
                 });
                 return () => {
@@ -1559,8 +1527,6 @@ if (typeof module !== "undefined" && module.exports) {
                         rightTotal: 0,
                     },
                     rightMeta: null,
-                    saveMessage: "",
-                    saveState: "idle",
                     status: "error",
                 });
                 return () => {
@@ -1579,8 +1545,6 @@ if (typeof module !== "undefined" && module.exports) {
                     rightTotal: 0,
                 },
                 rightMeta: null,
-                saveMessage: "",
-                saveState: "idle",
                 status: "loading",
             });
 
@@ -1633,8 +1597,6 @@ if (typeof module !== "undefined" && module.exports) {
                             rightTotal: Math.max(rightMeta.totalLength, rightTracks.length),
                         },
                         rightMeta,
-                        saveMessage: "",
-                        saveState: "idle",
                         status: "ready",
                     });
                 } catch (error) {
@@ -1650,8 +1612,6 @@ if (typeof module !== "undefined" && module.exports) {
                             rightTotal: 0,
                         },
                         rightMeta: null,
-                        saveMessage: "",
-                        saveState: "idle",
                         status: "error",
                     });
                 }
@@ -1669,47 +1629,12 @@ if (typeof module !== "undefined" && module.exports) {
             shared: state.comparison?.intersection?.length || 0,
         };
         const resultTracks = viewModel.tracks;
-        const saveableTracks = resultTracks.filter((track) => track.uri?.startsWith("spotify:track:"));
-        const saveDisabled = state.status !== "ready" || saveableTracks.length === 0 || state.saveState === "saving";
 
         const handleViewChange = (nextView) => {
             if (nextView === routeInfo.view) return;
             startTransition(() => {
                 replaceRoute(buildSymphonaRoute(routeInfo.leftUri, routeInfo.rightUri, nextView));
             });
-        };
-
-        const handleSave = async () => {
-            if (saveDisabled || !state.leftMeta || !state.rightMeta) return;
-
-            setState((current) => ({
-                ...current,
-                saveMessage: "",
-                saveState: "saving",
-            }));
-
-            try {
-                const newPlaylistUri = await createPlaylistFromTracks(
-                    `Symphona - ${state.leftMeta.name} x ${state.rightMeta.name} - ${viewModel.saveSuffix}`,
-                    saveableTracks.map((track) => track.uri)
-                );
-
-                setState((current) => ({
-                    ...current,
-                    saveMessage: `${pluralize(saveableTracks.length, "track")} saved to a new private playlist.`,
-                    saveState: "saved",
-                }));
-                Spicetify.showNotification?.("Symphona created the playlist.");
-                openPlaylist(newPlaylistUri);
-            } catch (error) {
-                const message = resolveErrorMessage(error);
-                setState((current) => ({
-                    ...current,
-                    saveMessage: message,
-                    saveState: "error",
-                }));
-                Spicetify.showNotification?.(`Symphona: ${message}`);
-            }
         };
 
         return react.createElement(
@@ -1793,16 +1718,6 @@ if (typeof module !== "undefined" && module.exports) {
                                     d: "M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0 1 12 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z",
                                 })
                             )
-                        ),
-                        react.createElement(
-                            "button",
-                            {
-                                className: "symphona-button symphona-button--primary",
-                                disabled: saveDisabled,
-                                onClick: handleSave,
-                                type: "button",
-                            },
-                            state.saveState === "saving" ? "Saving..." : viewModel.saveLabel
                         )
                     )
                 ),
@@ -1833,10 +1748,7 @@ if (typeof module !== "undefined" && module.exports) {
                             react.createElement(
                                 "div",
                                 { className: "symphona-inlineChips" },
-                                react.createElement("span", { className: "symphona-chip" }, pluralize(resultTracks.length, "result")),
-                                state.saveMessage
-                                    ? react.createElement("span", { className: "symphona-chip" }, state.saveMessage)
-                                    : null
+                                react.createElement("span", { className: "symphona-chip" }, pluralize(resultTracks.length, "result"))
                             )
                         ),
                         resultTracks.length

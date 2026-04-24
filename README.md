@@ -5,7 +5,7 @@
 <h1 align="center">Symphona</h1>
 
 <p align="center">
-  A routed playlist intersection extension for Spicetify with a premium split-hero workspace, responsive comparison views, and one-click playlist export.
+  A routed playlist intersection extension for Spicetify with a premium split-hero workspace and responsive comparison views.
 </p>
 
 <p align="center">
@@ -28,7 +28,7 @@ The extension keeps the interaction simple:
 1. Select a source playlist from Spotify's context menu.
 2. Compare it against another playlist.
 3. Open a full workspace with shared tracks, first-only tracks, and second-only tracks.
-4. Save the active view into a new playlist when you want to keep the result.
+4. Review the overlap or exclusive sets without leaving the comparison route.
 
 ## Key Features
 
@@ -37,7 +37,6 @@ The extension keeps the interaction simple:
 | Routed comparison page | Opens a full-page workspace using `Spicetify.Platform.History` instead of relying on a popup. |
 | Split-hero layout | Presents both playlists as equal subjects before moving into the result workspace. |
 | Three comparison modes | Switch instantly between `Shared`, `Only in First`, and `Only in Second`. |
-| Playlist export | Saves the currently active result set into a new private playlist. |
 | Modern Spicetify APIs | Built around current `Spicetify.Platform`, `ContextMenu.Item`, `React`, and injected styling. |
 | Responsive UI | Works across wider desktop layouts and narrower Spotify window sizes without falling apart. |
 | Single-file delivery | Ships as one `symphona.js` extension file with embedded styling. |
@@ -106,7 +105,7 @@ If you already use other extensions, append `symphona.js` instead of replacing y
    - `Shared`
    - `Only in First`
    - `Only in Second`
-5. Use the primary save action to export the current view as a new playlist.
+5. Use the GitHub icon or playlist links to move between the comparison and the source playlists.
 6. Double-click any result row to play that track immediately.
 
 ## Technical Notes
